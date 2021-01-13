@@ -206,16 +206,26 @@ describe_domain() {
 	else
 		json_select "DomainRecords" >/dev/null 2>&1
 		json_select "Record" >/dev/null 2>&1
-		json_select 1 >/dev/null 2>&1
-		json_get_var value "Locked"
-		[ $value -ne 0 ] && write_log 14 "解析记录被锁定"
-		json_get_var __RECID "RecordId"
-		write_log 7 "获得解析记录ID: ${__RECID}"
-		json_get_var value "Status"
-		[ "$value" != "ENABLE" ] && ret=$(( $ret | 2 )) && write_log 7 "解析记录被禁用"
-		json_get_var type "Type"
-		json_get_var value "Value"
-		[ "$type" != "${__TYPE}" -o "$value" != "${__IP}" ] && ret=$(( $ret | 4 )) && write_log 7 "地址或类型需要修改"
+		for i in `seq 1 $value`
+		do
+			json_select $i >/dev/null 2>&1
+			json_get_var _type "Type"
+			if [ "$_type" == "${__TYPE}" ]; then
+				json_get_var value "Locked"
+				[ $value -ne 0 ] && write_log 14 "解析记录被锁定"
+				json_get_var __RECID "RecordId"
+				write_log 7 "获得解析记录ID: ${__RECID}"
+				json_get_var value "Status"
+				[ "$value" != "ENABLE" ] && ret=$(( $ret | 2 )) && write_log 7 "解析记录被禁用"
+				json_get_var type "Type"
+				json_get_var value "Value"
+				[ "$type" != "${__TYPE}" -o "$value" != "${__IP}" ] && ret=$(( $ret | 4 )) && write_log 7 "地址或类型需要修改"
+				return $ret
+			fi
+			json_select ..
+		done
+		write_log 7 "解析记录不存在"
+		ret=1
 	fi
 	return $ret
 }
